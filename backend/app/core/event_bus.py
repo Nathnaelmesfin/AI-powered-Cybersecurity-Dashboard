@@ -5,11 +5,17 @@ from typing import Any, Awaitable, Callable
 
 from nats.aio.client import Client as NATS
 
-NATS_URL = os.getenv("SENTINELOPS_NATS_URL", "nats://127.0.0.1:4222")
 EVENT_SUBJECT = "sentinelops.events"
-EVENT_BUS_ENABLED = os.getenv("SENTINELOPS_EVENT_BUS_ENABLED", "0") == "1"
 
 _nc: NATS | None = None
+
+
+def _enabled() -> bool:
+    return os.getenv("SENTINELOPS_EVENT_BUS_ENABLED", "0") == "1"
+
+
+def _nats_url() -> str:
+    return os.getenv("SENTINELOPS_NATS_URL", "nats://127.0.0.1:4222")
 
 
 async def _get_nc() -> NATS:
@@ -17,12 +23,12 @@ async def _get_nc() -> NATS:
     if _nc and _nc.is_connected:
         return _nc
     _nc = NATS()
-    await _nc.connect(servers=[NATS_URL], connect_timeout=1)
+    await _nc.connect(servers=[_nats_url()], connect_timeout=1)
     return _nc
 
 
 def publish_event(event_type: str, data: dict[str, Any]) -> None:
-    if not EVENT_BUS_ENABLED:
+    if not _enabled():
         return
 
     async def _pub() -> None:
@@ -41,7 +47,7 @@ def publish_event(event_type: str, data: dict[str, Any]) -> None:
 
 
 async def subscribe_events(handler: Callable[[dict], Awaitable[None]]) -> bool:
-    if not EVENT_BUS_ENABLED:
+    if not _enabled():
         return False
     try:
         nc = await _get_nc()
