@@ -167,7 +167,7 @@ def ingest_telemetry(db: Session, payload: TelemetryEventCreate, actor: str) -> 
     _audit(db, actor, "telemetry.ingest", f"telemetry:{row.id}", f"{row.source}:{row.event_type}")
     payload = TelemetryEvent.model_validate(row, from_attributes=True)
     publish_event("telemetry", payload.model_dump(mode="json"))
-    process_telemetry_for_correlation(payload.source, payload.severity, payload.event_type, payload.payload)
+    process_telemetry_for_correlation(db, payload.source, payload.severity, payload.event_type, payload.payload)
     return payload
 
 
